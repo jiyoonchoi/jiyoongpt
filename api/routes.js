@@ -22,25 +22,24 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  },
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-async function connectToDatabase() {
-  try {
-    await client.connect();
-    console.log('Connected to MongoDB');
-  } catch (error) {
-    console.error('Failed to connect to MongoDB', error);
   }
-}
-
-connectToDatabase();
+});
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Connect to MongoDB
+let db;
+client.connect()
+  .then(() => {
+    console.log('Connected to MongoDB');
+    db = client.db('Cluster0');
+  })
+  .catch(err => {
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
+  });
 
 // Access login endpoint
 app.post('/login', async (req, res) => {
@@ -81,6 +80,12 @@ function loginHandler(req) {
 // Access prompt endpoint
 app.post('/prompt', async (req, res) => {
   console.log('Received prompt request:', req.body);
+
+  // Ensure the database connection is established
+  if (!db) {
+    return res.status(500).json({ error: 'Database connection not established' });
+  }
+  
   const response = await promptHandler(req);
   res.status(response.status).set(response.headers).send(response.body);
 });
@@ -118,7 +123,7 @@ async function promptHandler(req) {
     const data = await response.json();
 
     // Store the prompt and response in MongoDB
-    const db = client.db('your-database-name');
+    const db = client.db('Cluster0');
     const promptsCollection = db.collection('prompts');
     await promptsCollection.insertOne({
       prompt: { model, messages },
@@ -132,6 +137,7 @@ async function promptHandler(req) {
       headers: { 'Content-Type': 'application/json' }
     };
   } catch (error) {
+    console.error('Error handling prompt:', error);
     return {
       status: 500,
       body: JSON.stringify({ error: error.message }),

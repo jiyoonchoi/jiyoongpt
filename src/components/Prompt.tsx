@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function PromptInterface() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
 
+  // Restore the previous state of messages if the page is refreshed
   useEffect(() => {
     const storedMessages = localStorage.getItem('messages');
     if (storedMessages) {
@@ -11,6 +12,18 @@ export default function PromptInterface() {
     }
   }, []);
 
+  // Autoscrolls to bottom of chatbox
+  const messagesEndRef = useRef(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages]);
+
+  
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
@@ -49,15 +62,27 @@ export default function PromptInterface() {
         throw new Error('Failed to fetch response');
       }
 
+      // "data" represents the GPT response in JSON format
       const data = await res.json();
-      const responseMessage = { role: 'assistant', content: data.choices[0]?.message?.content || 'No response' };
+      console.log('Response data:', data);
+
+      // Ensure data.choices is an array and has at least one item
+      const responseMessage = { role: data.message.role, content: data.message.content || 'No response' };
+
+
       const finalMessages = [...updatedMessages, responseMessage];
+
+      // Update the state value (messages) so we can update the
+      // messages in local storage
       setMessages(finalMessages);
+
+      // Save messages to local storage for persistant page loads
       localStorage.setItem('messages', JSON.stringify(finalMessages));
-      setInputValue('');
+
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error retrieving response:', error);
     } finally {
+      // Clear input field
       setInputValue('');
     }
   };
@@ -71,13 +96,14 @@ export default function PromptInterface() {
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-gray-100">
       <div className="flex flex-col flex-grow w-full max-w-md my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md">
-        <div className="flex-grow overflow-auto mb-4">
+        <div className="flex-grow overflow-y-auto mb-4 h-80">
           <div className="space-y-2">
             {messages.map((message, index) => (
               <div key={index} className={`p-2 ${message.role === 'user' ? 'text-black-600' : 'text-gray-600'}`}>
                 <p>{message.content}</p>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
         </div>
         <form id="prompt-form" onSubmit={handleSubmit} className="mt-4">
