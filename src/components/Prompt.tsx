@@ -16,6 +16,7 @@ export default function PromptInterface() {
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
+    // @ts-ignore
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
@@ -99,7 +100,7 @@ export default function PromptInterface() {
         <div className="flex-grow overflow-y-auto mb-4 h-80">
           <div className="space-y-2">
             {messages.map((message, index) => (
-              <div key={index} className={`p-2 ${message.role === 'user' ? 'text-black-600' : 'text-gray-600'}`}>
+              <div key={index} className={`p-2 ${message.role === 'user' ? 'text-black-600' : 'text-indigo-600'}`}>
                 <p>{message.content}</p>
               </div>
             ))}
