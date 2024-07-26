@@ -37,6 +37,12 @@ export default function PromptInterface() {
     }
     console.log('Successfully retrieved JWT from local storage.');
 
+    // Check if the inputValue is not empty
+    if (inputValue.trim() === '') {
+      alert('Please enter a message.');
+      return;
+    }
+
     const newMessage = { role: 'user', content: inputValue, timestamp: getTimestamp() };
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);

@@ -7,7 +7,6 @@ const mongoUri = process.env.MONGODB_URI as string;
 if (!mongoUri) {
   throw new Error('MONGODB_URI environment variable is not set');
 }
-console.log('MongoDB URI:', mongoUri);
 
 let client: MongoClient | null = null;
 
