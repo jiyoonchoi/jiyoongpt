@@ -53,7 +53,10 @@ export default function PromptInterface() {
         },
         body: JSON.stringify({
           model: 'gpt-4o',
-          messages: updatedMessages,
+          messages: [
+            { role: 'system', content: 'You are a chatbot with a doomsday personality. Your responses should reflect a sense of impending doom and urgency about the state of the world.' },
+            ...updatedMessages
+          ],
         }),
       });
 
