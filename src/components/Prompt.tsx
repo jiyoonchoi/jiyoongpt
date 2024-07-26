@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 export default function PromptInterface() {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: string; content: string; timestamp: string }[]>([]);
 
   // Restore the previous state of messages if the page is refreshed
   useEffect(() => {
@@ -13,18 +14,15 @@ export default function PromptInterface() {
   }, []);
 
   // Autoscrolls to bottom of chatbox
-  const messagesEndRef = useRef(null)
-
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollToBottom = () => {
-    // @ts-ignore
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView();
+  };
 
   useEffect(() => {
-    scrollToBottom()
+    scrollToBottom();
   }, [messages]);
 
-  
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
@@ -34,27 +32,29 @@ export default function PromptInterface() {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('No token found. Please log in.');
+      alert('No token found. Please log in to reauthenticate.');
       return;
     }
     console.log('Successfully retrieved JWT from local storage.');
 
-    const newMessage = { role: 'user', content: inputValue };
+    const newMessage = { role: 'user', content: inputValue, timestamp: getTimestamp() };
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     localStorage.setItem('messages', JSON.stringify(updatedMessages));
+
+    setInputValue('');
 
     try {
       const res = await fetch('http://localhost:3001/prompt', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-4o",
-          messages: updatedMessages
-        })
+          model: 'gpt-4o',
+          messages: updatedMessages,
+        }),
       });
 
       if (!res.ok) {
@@ -68,23 +68,17 @@ export default function PromptInterface() {
       console.log('Response data:', data);
 
       // Ensure data.choices is an array and has at least one item
-      const responseMessage = { role: data.message.role, content: data.message.content || 'No response' };
-
-
+      const responseMessage = { role: data.message.role, content: data.message.content || 'No response', timestamp: getTimestamp() };
       const finalMessages = [...updatedMessages, responseMessage];
 
       // Update the state value (messages) so we can update the
       // messages in local storage
       setMessages(finalMessages);
 
-      // Save messages to local storage for persistant page loads
+      // Save messages to local storage for persistent page loads
       localStorage.setItem('messages', JSON.stringify(finalMessages));
-
     } catch (error) {
       console.error('Error retrieving response:', error);
-    } finally {
-      // Clear input field
-      setInputValue('');
     }
   };
 
@@ -94,14 +88,39 @@ export default function PromptInterface() {
     console.log('Cleared messages in local storage.');
   };
 
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  };
+
+  const getTimestamp = () => {
+    console.log('Retrieving timestamp:', Date().toLocaleString());
+    return new Date().toLocaleString();
+  };
+
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-gray-100">
-      <div className="flex flex-col flex-grow w-full max-w-md my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md">
-        <div className="flex-grow overflow-y-auto mb-4 h-80">
+      <div className="p-6 absolute top-0 left-0">
+        <h1 className="text-2xl text-gray-400 font-bold">JiyoonGPT</h1>
+      </div>
+      <button
+        id="sign-out"
+        onClick={handleSignOut}
+        className="absolute top-0 right-0 px-4 py-2 mt-4 mr-4 text-xl text-gray-400 font-semibold hover:text-gray-800"
+      >
+        Sign Out
+      </button>
+      <div className="flex flex-col flex-grow w-full max-w-lg my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md">
+        <div className="flex-grow overflow-y-auto mb-4 h-80 overflow-x-hidden">
           <div className="space-y-2">
             {messages.map((message, index) => (
-              <div key={index} className={`p-2 ${message.role === 'user' ? 'text-black-600' : 'text-indigo-600'}`}>
-                <p>{message.content}</p>
+              <div key={index} className={`p-2 border text-black-600 ${message.role === 'assistant' ? 'bg-gray-100' : ''} overflow-x-hidden`}>
+                {message.role === 'assistant' ? (
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                ) : (
+                  <p>{message.content}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">{message.timestamp}</p>
               </div>
             ))}
             <div ref={messagesEndRef} />
