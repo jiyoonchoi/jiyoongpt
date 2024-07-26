@@ -1,14 +1,39 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fetch from 'node-fetch';
 import { MongoClient, ServerApiVersion } from 'mongodb';
+import dotenv from 'dotenv';
 
-const client = new MongoClient(process.env.MONGODB_URI as string, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+dotenv.config();
+
+let client: MongoClient;
+let isClientConnected = false;
+
+// MDB Auto IP
+const getMongoUri = async (): Promise<string> => {
+  const ip = await fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => data.ip);
+  return `mongodb://username:password@${ip}:port/database`;
+};
+
+const connectToMongoDB = async () => {
+  if (!client || !isClientConnected) {
+    const uri = await getMongoUri();
+    client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    });
+
+    try {
+      await client.connect();
+      isClientConnected = true;
+      console.log('Connected to MongoDB');
+    } catch (error) {
+      console.error('Failed to connect to MongoDB', error);
+    }
   }
-});
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
@@ -24,6 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      // Ensure MongoDB connection
+      await connectToMongoDB();
+
       const response = await fetch('https://tl-onboarding-project-dxm7krgnwa-uc.a.run.app/prompt', {
         method: 'POST',
         headers: {
@@ -35,7 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const data = await response.json();
 
-      await client.connect();
       const db = client.db('Cluster0');
       const promptsCollection = db.collection('prompts');
       await promptsCollection.insertOne({
