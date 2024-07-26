@@ -2,13 +2,28 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fetch from 'node-fetch';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 
-const client = new MongoClient(process.env.MONGODB_URI as string, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+const mongoUri = process.env.MONGODB_URI as string;
+
+if (!mongoUri) {
+  throw new Error('MONGODB_URI environment variable is not set');
+}
+console.log('MongoDB URI:', mongoUri);
+
+let client: MongoClient | null = null;
+
+const connectToMongoDB = async () => {
+  if (!client) {
+    client = new MongoClient(mongoUri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    });
+    await client.connect();
   }
-});
+  return client;
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
@@ -24,6 +39,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      console.log('Connecting to MongoDB...');
+      const mongoClient = await connectToMongoDB();
+      const db = mongoClient.db('Cluster0');
+      const promptsCollection = db.collection('prompts');
+
+      console.log('Fetching data from external API...');
+      const fetchStart = Date.now();
       const response = await fetch('https://tl-onboarding-project-dxm7krgnwa-uc.a.run.app/prompt', {
         method: 'POST',
         headers: {
@@ -32,25 +54,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         body: JSON.stringify({ model, messages })
       });
-
-      if (!response.ok) {
-        throw new Error(`External API returned status: ${response.status}`);
-      }
+      console.log('Fetched data in', Date.now() - fetchStart, 'ms');
 
       const data = await response.json();
 
-      console.log('Connecting to MongoDB...');
-      await client.connect();
-      console.log('Connected to MongoDB');
-      const db = client.db('Cluster0');
-      const promptsCollection = db.collection('prompts');
-      console.log('Inserting document into prompts collection...');
+      console.log('Inserting data into MongoDB...');
       await promptsCollection.insertOne({
         prompt: { model, messages },
         response: data,
         timestamp: new Date()
       });
-      console.log('Document inserted successfully');
+
       res.status(200).json(data);
     } catch (error) {
       console.error('Error in handler:', error);
