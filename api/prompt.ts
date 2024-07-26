@@ -39,22 +39,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const data = await response.json();
 
+      console.log('Connecting to MongoDB...');
       await client.connect();
+      console.log('Connected to MongoDB');
       const db = client.db('Cluster0');
       const promptsCollection = db.collection('prompts');
+      console.log('Inserting document into prompts collection...');
       await promptsCollection.insertOne({
         prompt: { model, messages },
         response: data,
         timestamp: new Date()
       });
-
+      console.log('Document inserted successfully');
       res.status(200).json(data);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(500).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Unknown error occurred' });
-      }
+      console.error('Error in handler:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
