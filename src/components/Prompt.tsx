@@ -102,7 +102,9 @@ export default function PromptInterface() {
   };
 
   return (
+    // Main container
     <div className="flex flex-col items-center justify-between min-h-screen bg-gray-100">
+      {/* Containers for website title and sign out button */}
       <div className="p-6 absolute top-0 left-0">
         <h1 className="text-2xl text-gray-400 font-bold">JiyoonGPT</h1>
       </div>
@@ -113,23 +115,31 @@ export default function PromptInterface() {
       >
         Sign Out
       </button>
+      {/* Chatbox container */}
       <div className="flex flex-col flex-grow w-full max-w-lg my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md">
+        {/* Messages container with vertical scrolling */}
         <div className="flex-grow overflow-y-auto mb-4 h-80 overflow-x-hidden">
+          {/* Individual message containe */}
           <div className="space-y-2">
             {messages.map((message, index) => (
+              // Display assistant's message with markdown formatting
               <div key={index} className={`p-2 border text-black-600 ${message.role === 'assistant' ? 'bg-gray-100' : ''} overflow-x-hidden`}>
                 {message.role === 'assistant' ? (
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 ) : (
+                  // Display user's message as plain text
                   <p>{message.content}</p>
                 )}
+                {/* Timestamp for the message */}
                 <p className="text-sm text-gray-500 mt-1">{message.timestamp}</p>
               </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
         </div>
+        {/* Input for submitting prompts */}
         <form id="prompt-form" onSubmit={handleSubmit} className="mt-4">
+          {/* Input field for typing messages */}
           <input
             type="text"
             value={inputValue}
@@ -137,6 +147,7 @@ export default function PromptInterface() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600"
             placeholder="Type your message..."
           />
+          {/* Submit button to send the message */}
           <button
             id="send-prompt"
             type="submit"
@@ -144,6 +155,7 @@ export default function PromptInterface() {
           >
             Send
           </button>
+          {/* Button to start a new conversation */}
           <button
             id="new-conversation"
             type="button"
