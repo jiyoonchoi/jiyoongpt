@@ -15,10 +15,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
+
+      if (!response.ok) {
+        throw new Error(`External API returned status: ${response.status}`);
+      }
+
       const data = await response.json();
       res.status(200).json(data);
     } catch (error) {
-      res.status(401).json({ error: error.message });
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Unknown error occurred' });
+      }
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

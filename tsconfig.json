@@ -13,7 +13,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
-    "allowImportingTsExtensions": true,
 
     /* Linting */
     "strict": true,

@@ -17,7 +17,7 @@ export default function Homepage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const response = await fetch("http://localhost:3001/login", {
+      const response = await fetch("api/login.ts", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'

@@ -45,7 +45,7 @@ export default function PromptInterface() {
     setInputValue('');
 
     try {
-      const res = await fetch('http://localhost:3001/prompt', {
+      const res = await fetch('api/prompt.ts', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
