@@ -12,6 +12,7 @@ let client: MongoClient | null = null;
 
 const connectToMongoDB = async () => {
   if (!client) {
+    console.log('Initializing new MongoDB client...');
     client = new MongoClient(mongoUri, {
       serverApi: {
         version: ServerApiVersion.v1,
@@ -20,56 +21,60 @@ const connectToMongoDB = async () => {
       }
     });
     await client.connect();
+    console.log('MongoDB client connected successfully.');
+  } else {
+    console.log('Reusing existing MongoDB client.');
   }
   return client;
 };
 
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'POST') {
-    const token = req.headers.authorization?.split(' ')[1];
-    const { model, messages } = req.body;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
+  const token = req.headers.authorization?.split(' ')[1];
+  const { model, messages } = req.body;
 
-    if (!model || !messages) {
-      return res.status(400).json({ error: 'Model and messages are required' });
-    }
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
 
-    try {
-      console.log('Connecting to MongoDB...');
-      const mongoClient = await connectToMongoDB();
-      const db = mongoClient.db('Cluster0');
-      const promptsCollection = db.collection('prompts');
+  if (!model || !messages) {
+    return res.status(400).json({ error: 'Model and messages are required' });
+  }
 
-      console.log('Fetching data from external API...');
-      const fetchStart = Date.now();
-      const response = await fetch('https://tl-onboarding-project-dxm7krgnwa-uc.a.run.app/prompt', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ model, messages })
-      });
-      console.log('Fetched data in', Date.now() - fetchStart, 'ms');
+  try {
+    console.log('Connecting to MongoDB...');
+    const mongoClient = await connectToMongoDB();
+    const db = mongoClient.db('Cluster0');
+    const promptsCollection = db.collection('prompts');
 
-      const data = await response.json();
+    console.log('Fetching data from external API...');
+    const fetchStart = Date.now();
+    const response = await fetch('https://tl-onboarding-project-dxm7krgnwa-uc.a.run.app/prompt', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ model, messages })
+    });
+    console.log('Fetched data in', Date.now() - fetchStart, 'ms');
 
-      console.log('Inserting data into MongoDB...');
-      await promptsCollection.insertOne({
-        prompt: { model, messages },
-        response: data,
-        timestamp: new Date()
-      });
+    const data = await response.json();
 
-      res.status(200).json(data);
-    } catch (error) {
-      console.error('Error in handler:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    console.log('Inserting data into MongoDB...');
+    await promptsCollection.insertOne({
+      prompt: { model, messages },
+      response: data,
+      timestamp: new Date()
+    });
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error('Error in handler:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
