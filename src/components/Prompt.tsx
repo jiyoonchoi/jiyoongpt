@@ -116,9 +116,9 @@ export default function PromptInterface() {
         Sign Out
       </button>
       {/* Chatbox */}
-      <div className="flex flex-col flex-grow w-full max-w-lg my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md mx-auto">
+      <div className="flex flex-col flex-grow w-full max-w-lg p-6 bg-white border border-gray-300 rounded-lg shadow-md mx-auto">
         {/* Container of messages */}
-        <div className="flex-grow overflow-y-auto mb-4 max-h-80">
+        <div className="flex-grow overflow-y-auto mb-4">
           <div className="space-y-2">
             {messages.map((message, index) => (
               <div key={index} className={`p-2 border text-black-600 ${message.role === 'assistant' ? 'bg-gray-100' : ''}`}>
