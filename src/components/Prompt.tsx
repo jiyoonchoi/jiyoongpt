@@ -51,7 +51,7 @@ export default function PromptInterface() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('api/prompt.ts', {
+      const res = await fetch('../../api/prompt.ts', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
