@@ -21,6 +21,7 @@ export default function PromptInterface() {
 
   useEffect(() => {
     scrollToBottom();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [messages]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,14 +30,19 @@ export default function PromptInterface() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     const token = localStorage.getItem('token');
     if (!token) {
       setIsModalOpen(true);
       return;
     }
-    if (inputValue.trim() === '') return;
 
-    const newMessage = { role: 'user', content: inputValue, timestamp: new Date().toLocaleString() };
+    if (inputValue.trim() === '') {
+      alert('Please enter a message.');
+      return;
+    }
+
+    const newMessage = { role: 'user', content: inputValue, timestamp: getTimestamp() };
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     localStorage.setItem('messages', JSON.stringify(updatedMessages));
@@ -54,19 +60,29 @@ export default function PromptInterface() {
         body: JSON.stringify({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: 'You are a chatbot with a doomsday personality.' },
+            { role: 'system', content: 'You are a chatbot with a doomsday personality. Your responses should reflect a sense of impending doom and urgency about the state of the world.' },
             ...updatedMessages
           ],
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to fetch response');
+      if (!res.ok) {
+        const responseText = await res.text();
+        console.error('Error response:', responseText);
+        throw new Error('Failed to fetch response');
+      }
+
       const data = await res.json();
-      const responseMessage = { role: data.message.role, content: data.message.content || 'No response', timestamp: new Date().toLocaleString() };
-      setMessages([...updatedMessages, responseMessage]);
-      localStorage.setItem('messages', JSON.stringify([...updatedMessages, responseMessage]));
+
+      const responseMessage = { 
+        role: data.message.role, content: data.message.content || 
+        'No response', timestamp: getTimestamp() };
+      const finalMessages = [...updatedMessages, responseMessage];
+
+      setMessages(finalMessages);
+      localStorage.setItem('messages', JSON.stringify(finalMessages));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error retrieving response:', error);
     } finally {
       setIsLoading(false);
     }
@@ -82,19 +98,27 @@ export default function PromptInterface() {
     window.location.href = '/';
   };
 
+  const getTimestamp = () => {
+    return new Date().toLocaleString();
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
+      {/* Header Section */}
       <div className="p-6">
         <h1 className="text-2xl text-gray-400 font-bold">JiyoonGPT</h1>
       </div>
+      {/* Sign Out Button */}
       <button
         onClick={handleSignOut}
         className="absolute top-0 right-0 px-4 py-2 mt-4 mr-4 text-xl text-gray-400 font-semibold hover:text-gray-800"
       >
         Sign Out
       </button>
-      <div className="flex flex-col flex-grow w-full max-w-lg p-6 bg-white border border-gray-300 rounded-lg shadow-md mx-auto">
-        <div className="flex-grow overflow-y-auto">
+      {/* Chatbox */}
+      <div className="flex flex-col flex-grow w-full max-w-lg my-20 p-6 bg-white border border-gray-300 rounded-lg shadow-md mx-auto">
+        {/* Container of messages */}
+        <div className="flex-grow overflow-y-auto mb-4 max-h-80">
           <div className="space-y-2">
             {messages.map((message, index) => (
               <div key={index} className={`p-2 border text-black-600 ${message.role === 'assistant' ? 'bg-gray-100' : ''}`}>
@@ -137,9 +161,12 @@ export default function PromptInterface() {
           </div>
         </form>
       </div>
+
+      {/* Modal for No Token Found */}
       {isModalOpen && (
         <div className="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
           <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
               <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
